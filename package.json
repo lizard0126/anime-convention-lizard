@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-anime-convention-lizard",
-  "description": "查询某个城市即将开始的漫展或查询相关动漫的漫展，提供订阅服务",
-  "version": "2.0.0",
+  "description": "调用B站接口查询某个城市或地区的漫展信息，提供订阅服务",
+  "version": "3.0.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lizard0126/anime-convention-lizard.git"
@@ -14,7 +14,8 @@
   ],
   "license": "MIT",
   "keywords": [
-    "chatbot",
+    "漫展",
+    "会员购",
     "koishi",
     "plugin"
   ],
