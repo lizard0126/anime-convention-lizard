@@ -50,7 +50,9 @@ export const usage = `
 </details>
 `;
 
-export const Config = Schema.object({});
+export const Config = Schema.object({
+  timeout: Schema.number().max(60000).default(15000).description('选择超时时长（秒数*1000）'),
+});
 
 declare module 'koishi' {
   interface Tables {
@@ -79,7 +81,7 @@ function resolveAreaCode(input: string): string | null {
 }
 
 function formatListMessage(data: any[]) {
-  return data.map((item, i) => `${i + 1}. ${item.project_name} - ${item.district_name} - ${item.venue_name}`).join('\n')
+  return data.map((item, i) => `${i + 1}. ${item.project_name}`).join('\n')
 }
 
 function formatDetail(item: any) {
@@ -95,6 +97,9 @@ function formatDetail(item: any) {
   }
   if (item.jump_url) msg += `活动链接: ${item.jump_url}\n`
   if (item.sale_point) msg += `宣传卖点: ${item.sale_point}\n`
+  if (Array.isArray(item.guests) && item.guests.length) {
+    msg += `参与嘉宾: ${item.guests.map((t: any) => t.name).join(' / ')}\n`
+  }
   return msg
 }
 
@@ -104,12 +109,12 @@ async function fetchConventions(ctx: Context, area: string) {
   return Array.isArray(res.data.result) ? res.data.result : []
 }
 
-function cacheResult(userCache: Record<string, any>, userId: string, data: any[], session: Session) {
+function cacheResult(userCache: Record<string, any>, userId: string, data: any[], session: Session, config) {
   userCache[userId] = { cache: data }
   userCache[userId].timeoutId = setTimeout(() => {
     delete userCache[userId]
     session.send('超时未选择，请重新查询。')
-  }, 15000)
+  }, config.timeout)
 }
 
 export function apply(ctx: Context, config: { apiUrl: string }) {
@@ -137,7 +142,7 @@ export function apply(ctx: Context, config: { apiUrl: string }) {
         const data = await fetchConventions(ctx, areaCode)
         if (!data.length) return session.send('未找到相关地区的漫展信息。');
 
-        cacheResult(userSearchCache, session.userId, data, session)
+        cacheResult(userSearchCache, session.userId, data, session, config)
         session.send(`找到以下漫展：\n${formatListMessage(data)}\n请输入序号查看详情，输入“0”取消。`);
       } catch (err) {
         ctx.logger.error('查询 API 失败:', err)
@@ -154,7 +159,7 @@ export function apply(ctx: Context, config: { apiUrl: string }) {
       const allResults = results.flat()
       if (!allResults.length) return session.send('未找到订阅地区的漫展。');
 
-      cacheResult(userSearchCache, session.userId, allResults, session)
+      cacheResult(userSearchCache, session.userId, allResults, session, config)
       session.send(`订阅地区的漫展：\n${formatListMessage(allResults)}\n请输入序号查看详情，输入“0”取消。`);
     });
 
@@ -215,8 +220,9 @@ export function apply(ctx: Context, config: { apiUrl: string }) {
     const selectedItem = userCache.cache[choice - 1]
 
     try {
-      const img = await ctx.http.get(`https:${selectedItem.cover}`)
-      await session.send(`${h.image(img)}\n${formatDetail(selectedItem)}`)
+      const img = await ctx.http.get(`https:${selectedItem.cover}`, { responseType: 'arraybuffer' })
+      const imageData = `data:image/jpeg;base64,${Buffer.from(img).toString('base64')}`
+      await session.send(`${h.image(imageData)}\n${formatDetail(selectedItem)}`)
     } catch {
       await session.send(formatDetail(selectedItem))
     }

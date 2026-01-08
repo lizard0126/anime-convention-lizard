@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-anime-convention-lizard",
   "description": "调用B站接口查询某个城市或地区的漫展信息，提供订阅服务",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lizard0126/anime-convention-lizard.git"
